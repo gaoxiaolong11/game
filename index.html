@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>看图猜词小游戏</title>
+    <title>金相组织图谱学习游戏</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
     <script>
@@ -38,7 +38,7 @@
 <!-- 封面页 -->
 <div id="coverPage" class="min-h-screen flex flex-col items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl p-8 max-w-xl w-full text-center">
-        <h1 class="text-4xl font-bold text-primary mb-4">🏆 看图猜词游戏</h1>
+        <h1 class="text-4xl font-bold text-primary mb-4">🏆 金相组织图谱学习游戏</h1>
         <p class="text-gray-600 mb-6">看图选择题，答对一题5分，限时10分钟</p>
 
         <div class="mb-6 p-4 bg-blue-50 rounded-xl">
@@ -46,8 +46,9 @@
             <div id="homeRank" class="text-left space-y-1"></div>
         </div>
 
+        <!-- 修复：bgprimary → bg-primary -->
         <button id="startBtn" class="bg-primary text-white text-xl font-bold py-3 px-8 rounded-xl w-full">
-            开始猜图
+            开始学习
         </button>
         <button id="rankBtn" class="mt-3 text-indigo-600 text-sm underline">查看完整排行榜</button>
         <p class="text-gray-500 mt-4 text-sm">已有 <span id="playerCount">0</span> 位同学参与</p>
@@ -61,7 +62,7 @@
         <input id="playerName" class="w-full border border-gray-300 rounded-lg p-3 mb-4" placeholder="输入你的名字">
         <div class="flex gap-2">
             <button id="cancelName" class="flex-1 bg-gray-200 py-2 rounded-lg">取消</button>
-            <button id="okName" class="flex-1 bg-primary text-white py-2 rounded-lg">开始游戏</button>
+            <button id="okName" class="flex-1 bg-primary text-white py-2 rounded-lg">开始学习</button>
         </div>
     </div>
 </div>
@@ -72,11 +73,11 @@
         <div class="flex justify-between bg-white p-3 rounded-xl shadow mb-3">
             <div class="font-bold">⏱️ <span id="timer">10:00</span></div>
             <div class="font-bold text-primary">⭐ 得分：<span id="score">0</span></div>
-            <div class="font-bold"><span id="curr">1</span>/<span id="total">5</span></div>
+            <div class="font-bold"><span id="curr">1</span>/<span id="total">19</span></div>
         </div>
 
         <div class="bg-white rounded-2xl p-5 shadow mb-4 text-center">
-            <p class="text-gray-700 mb-3">请选择正确的答案</p>
+            <p class="text-gray-700 mb-3">识别金相组织，选择正确名称</p>
             <img id="img" src="" class="max-h-64 mx-auto rounded-lg shadow mb-6">
 
             <!-- 选择题选项区域 -->
@@ -104,14 +105,14 @@
     <div class="bg-white rounded-2xl p-6 text-center max-w-sm w-full">
         <h2 id="judgeText" class="text-2xl font-bold mb-2"></h2>
         <p class="mb-4" id="rightAns"></p>
-        <button id="nextQ" class="bg-primary text-white px-6 py-2 rounded-xl">下一题</button>
+        <button id="nextQ" class="bg-primary text-white px-6 py-2 rounded-xl">继续学习</button>
     </div>
 </div>
 
 <!-- 结果页 -->
 <div id="resultModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl p-6 text-center max-w-sm w-full">
-        <h2 class="text-2xl font-bold mb-2">🎉 答题完成</h2>
+        <h2 class="text-2xl font-bold mb-2">🎉 图谱学习完成</h2>
         <p class="text-xl mb-4">最终得分：<span id="final" class="text-primary font-bold">0</span> 分</p>
         <div class="flex gap-2">
             <button id="goRank" class="flex-1 bg-indigo-500 text-white py-2 rounded-lg">查看排行榜</button>
@@ -123,7 +124,7 @@
 <!-- 完整排行榜 -->
 <div id="rankModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-        <h2 class="text-xl font-bold mb-4 text-center">🏅 排行榜</h2>
+        <h2 class="text-xl font-bold mb-4 text-center">🏅 学习排行榜</h2>
         <div id="fullRank" class="space-y-2"></div>
         <button id="closeRank" class="mt-4 w-full bg-gray-200 py-2 rounded-lg">关闭</button>
     </div>
@@ -132,7 +133,7 @@
 <!-- 老师记录页 -->
 <div id="teacherModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
     <div class="bg-white rounded-2xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-        <h2 class="text-xl font-bold mb-4 text-center">学生答题记录</h2>
+        <h2 class="text-xl font-bold mb-4 text-center">学生图谱学习记录</h2>
         <div id="recordList" class="space-y-1 text-sm"></div>
         <div class="flex gap-2 mt-4">
             <button id="clearAll" class="flex-1 bg-red-500 text-white py-2 rounded-lg">清空记录</button>
@@ -144,7 +145,7 @@
 <script>
 // ============== 核心配置 ==============
 const CONFIG = {
-    time: 3600,
+    time: 600, // 10分钟 = 600秒
     perScore: 5,
     questions: [
         { img: "11.jpg", ans: "工业纯铁退火组织铁素体" },
@@ -209,7 +210,7 @@ dom.goRank.onclick = ()=>{dom.resultModal.classList.add('hidden');showRank();dom
 dom.okName.onclick = ()=>{
     let n = dom.playerName.value.trim();
     if(!n) {
-        alert('请输入姓名才能开始游戏哦~');
+        alert('请输入姓名才能开始学习哦~');
         return;
     }
     game.name = n;
@@ -231,12 +232,12 @@ function startGame(){
 function generateOptions(){
     const correctAns = CONFIG.questions[game.q].ans;
     const allAnswers = CONFIG.questions.map(q => q.ans);
-    
+
     // 筛选出非正确答案
     let wrongOptions = allAnswers.filter(ans => ans !== correctAns);
     // 随机打乱并取3个错误答案
     wrongOptions = wrongOptions.sort(() => Math.random() - 0.5).slice(0, 3);
-    
+
     // 组合4个选项并打乱
     let options = [correctAns, ...wrongOptions];
     return options.sort(() => Math.random() - 0.5);
@@ -246,11 +247,11 @@ function generateOptions(){
 function renderQ(){
     let item = CONFIG.questions[game.q];
     dom.img.src = item.img;
-    
+
     // 生成选项
     const options = generateOptions();
     dom.optionsArea.innerHTML = '';
-    
+
     options.forEach((opt, index) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn w-full bg-blue-100 hover:bg-blue-200 rounded-lg p-3 text-left text-lg font-bold';
@@ -267,17 +268,17 @@ function renderQ(){
 function selectOption(selectedAns){
     const correctAns = CONFIG.questions[game.q].ans;
     const isCorrect = selectedAns === correctAns;
-    
+
     // 计分
     if(isCorrect) {
         game.score += CONFIG.perScore;
         dom.score.textContent = game.score;
     }
-    
+
     // 显示判题弹窗
     dom.judgeText.textContent = isCorrect ? '✅ 回答正确' : '❌ 回答错误';
     dom.judgeText.style.color = isCorrect ? '#10b981' : '#ef4444';
-    dom.rightAns.textContent = '正确答案：' + correctAns;
+    dom.rightAns.textContent = '正确名称：' + correctAns;
     dom.judgeModal.classList.remove('hidden');
 }
 
@@ -316,7 +317,7 @@ dom.nextQ.onclick = () => {
 // 动态更新导航按钮
 function updateNavBtn(){
     if(game.q === CONFIG.questions.length -1){
-        dom.nextBtn.textContent = '完成答题';
+        dom.nextBtn.textContent = '完成学习';
         dom.nextBtn.classList.remove('bg-primary');
         dom.nextBtn.classList.add('bg-green-600');
     } else {
@@ -336,7 +337,7 @@ function startTimer(){
         dom.timer.textContent = m+':'+s;
         if(game.left<=0){
             finishGame();
-            alert('时间到！');
+            alert('时间到！学习结束');
         }
     },1000);
 }
@@ -394,7 +395,7 @@ async function saveRecordToCloud() {
 
 // 清空云端数据
 async function clearAllData() {
-    if (!confirm("确定清空所有答题记录？所有设备都会清空！")) return;
+    if (!confirm("确定清空所有学习记录？所有设备都会清空！")) return;
     allRecords = [];
     try {
         await fetch(CLOUD_DB.url, {
