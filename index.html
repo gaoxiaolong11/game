@@ -25,11 +25,20 @@
         }
     </script>
     <style>
-        .option-btn {
+        .word-btn {
             transition: all 0.2s;
         }
-        .option-btn:active {
+        .word-btn:active {
             transform: scale(0.95);
+        }
+        .answer-box {
+            cursor: pointer;
+        }
+        #answerArea {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 6px;
         }
     </style>
 </head>
@@ -39,7 +48,7 @@
 <div id="coverPage" class="min-h-screen flex flex-col items-center justify-center p-4">
     <div class="bg-white rounded-2xl shadow-xl p-8 max-w-xl w-full text-center">
         <h1 class="text-4xl font-bold text-primary mb-4">🏆 看图猜词游戏</h1>
-        <p class="text-gray-600 mb-6">看图选择题，答对一题5分，限时10分钟</p>
+        <p class="text-gray-600 mb-6">看图拼字，答对一题5分，限时10分钟</p>
 
         <div class="mb-6 p-4 bg-blue-50 rounded-xl">
             <h3 class="font-bold text-lg mb-2">📊 排行榜</h3>
@@ -76,13 +85,13 @@
         </div>
 
         <div class="bg-white rounded-2xl p-5 shadow mb-4 text-center">
-            <p class="text-gray-700 mb-3">请选择正确的答案</p>
-            <img id="img" src="" class="max-h-64 mx-auto rounded-lg shadow mb-6">
+            <p class="text-gray-700 mb-3">看图猜词，点击字库拼答案，点答案框可清除</p>
+            <img id="img" src="" class="max-h-64 mx-auto rounded-lg shadow mb-4">
 
-            <!-- 选择题选项区域 -->
-            <div id="optionsArea" class="space-y-3 mb-4"></div>
+            <!-- 答案区域（自动换行） -->
+            <div id="answerArea" class="mb-4"></div>
 
-            <!-- 题目导航按钮组 -->
+            <!-- 题目导航按钮组：上一题 + 下一题 -->
             <div class="flex justify-center gap-4 mt-3">
                 <button id="prevBtn" class="bg-gray-500 text-white py-2 px-5 rounded-lg">
                     ← 上一题
@@ -91,6 +100,10 @@
                     下一题 →
                 </button>
             </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-5 shadow">
+            <div id="wordBank" class="grid grid-cols-6 gap-2"></div>
         </div>
 
         <div class="text-center mt-4">
@@ -166,10 +179,19 @@ const CONFIG = {
         { img: "5151.jpg", ans: "球墨铸铁退火组织铁素体+球状石墨" },
         { img: "5555.jpg", ans: "ZL102铸态组织初晶硅晶体+共晶体" },
         { img: "5656.jpg", ans: "ZL102铸态组织初晶a固溶体+粒状共晶体" }
+    ],
+    words: [
+        '工','业','纯','铁','退','火','组','织','素','体',
+        '2','0','钢','4','5','6','T','8','珠','光','+',
+        '1','2','二','次','渗','碳','亚','共','晶','生',
+        '铸','态','莱','氏','过','一','等','温','淬','上',
+        '贝','下','板','条','马','针','残','余','奥','球',
+        '化','灰','铸','石','墨','片','Z','L','初','硅',
+        '固','溶','粒','3','铝'
     ]
 };
 
-// 云端存储配置
+// 云端存储配置（免费公共库）
 const CLOUD_DB = {
     url: "https://api.jsonbin.io/v3/b/67f289a6ad19ca34f8c19235",
     key: "$2a$10$QpZxQl8u1eHT5t1G2t5VbuHw0zJzJzJzJzJzJzJzJzJzJzJzJzJz"
@@ -177,14 +199,14 @@ const CLOUD_DB = {
 
 // 游戏状态
 let game = {
-    q:0, score:0, left:CONFIG.time, timer:null, name:''
+    q:0, score:0, left:CONFIG.time, timer:null, name:'', userAns:[], shuffled:[]
 };
 
 // DOM 元素获取
 let dom = {};
 ['coverPage','gamePage','nameModal','judgeModal','resultModal','rankModal','teacherModal',
- 'startBtn','rankBtn','cancelName','okName','timer','score','curr','total','img','optionsArea',
- 'nextQ','judgeText','rightAns','final','goRank','goHome','closeRank','playerCount',
+ 'startBtn','rankBtn','cancelName','okName','timer','score','curr','total','img','answerArea',
+ 'wordBank','nextQ','judgeText','rightAns','final','goRank','goHome','closeRank','playerCount',
  'teacherBtn','recordList','closeTeacher','clearAll','homeRank','fullRank','playerName',
  'prevBtn','nextBtn'].forEach(id=>{
     dom[id] = document.getElementById(id);
@@ -219,66 +241,86 @@ dom.okName.onclick = ()=>{
 
 // 开始游戏
 function startGame(){
-    game.q = 0; game.score = 0; game.left = CONFIG.time;
+    game.q = 0; game.score = 0; game.left = CONFIG.time; game.userAns = [];
     dom.score.textContent = 0; dom.curr.textContent = 1;
     dom.coverPage.classList.add('hidden');
     dom.gamePage.classList.remove('hidden');
+    shuffleWords();
     renderQ();
     startTimer();
 }
 
-// 生成随机选项（4个，包含正确答案）
-function generateOptions(){
-    const correctAns = CONFIG.questions[game.q].ans;
-    const allAnswers = CONFIG.questions.map(q => q.ans);
-
-    // 筛选出非正确答案
-    let wrongOptions = allAnswers.filter(ans => ans !== correctAns);
-    // 随机打乱并取3个错误答案
-    wrongOptions = wrongOptions.sort(() => Math.random() - 0.5).slice(0, 3);
-
-    // 组合4个选项并打乱
-    let options = [correctAns, ...wrongOptions];
-    return options.sort(() => Math.random() - 0.5);
+// 打乱字库
+function shuffleWords(){
+    game.shuffled = [...CONFIG.words].sort(()=>Math.random()-0.5);
 }
 
-// 渲染题目
+// 渲染题目 + 动态更新按钮状态
 function renderQ(){
     let item = CONFIG.questions[game.q];
     dom.img.src = item.img;
+    dom.answerArea.innerHTML = '';
+    let len = item.ans.length;
+    game.userAns = Array(len).fill('');
 
-    // 生成选项
-    const options = generateOptions();
-    dom.optionsArea.innerHTML = '';
+    for(let i=0;i<len;i++){
+        let b = document.createElement('div');
+        b.className = 'answer-box w-10 h-10 border-2 border-primary rounded-lg flex items-center justify-center text-lg font-bold bg-white';
+        b.dataset.i = i;
+        b.onclick = ()=>{
+            game.userAns[i] = '';
+            updateAns();
+        };
+        dom.answerArea.appendChild(b);
+    }
 
-    options.forEach((opt, index) => {
-        const btn = document.createElement('button');
-        btn.className = 'option-btn w-full bg-blue-100 hover:bg-blue-200 rounded-lg p-3 text-left text-lg font-bold';
-        btn.innerHTML = `(${String.fromCharCode(65 + index)}) ${opt}`;
-        btn.onclick = () => selectOption(opt);
-        dom.optionsArea.appendChild(btn);
+    dom.wordBank.innerHTML = '';
+    game.shuffled.forEach((w,i)=>{
+        let btn = document.createElement('button');
+        btn.className = 'word-btn bg-blue-100 hover:bg-blue-200 rounded-lg text-xl font-bold h-10';
+        btn.textContent = w;
+        btn.onclick = ()=>fillWord(w);
+        dom.wordBank.appendChild(btn);
     });
 
-    // 更新按钮状态
+    // 动态更新按钮状态：最后一题时「下一题」改为「完成答题」
     updateNavBtn();
 }
 
-// 选择选项
-function selectOption(selectedAns){
-    const correctAns = CONFIG.questions[game.q].ans;
-    const isCorrect = selectedAns === correctAns;
+// 填字
+function fillWord(w){
+    let idx = game.userAns.indexOf('');
+    if(idx===-1) return;
+    game.userAns[idx] = w;
+    updateAns();
+    if(!game.userAns.includes('')) checkAns();
+}
 
-    // 计分
-    if(isCorrect) {
-        game.score += CONFIG.perScore;
-        dom.score.textContent = game.score;
-    }
+// 更新答案框
+function updateAns(){
+    let boxes = dom.answerArea.children;
+    game.userAns.forEach((c,i)=>boxes[i].textContent=c);
+}
 
-    // 显示判题弹窗
-    dom.judgeText.textContent = isCorrect ? '✅ 回答正确' : '❌ 回答错误';
-    dom.judgeText.style.color = isCorrect ? '#10b981' : '#ef4444';
-    dom.rightAns.textContent = '正确答案：' + correctAns;
+// 判题
+function checkAns(){
+    let ok = game.userAns.join('') === CONFIG.questions[game.q].ans;
+    if(ok) game.score += CONFIG.perScore;
+    dom.score.textContent = game.score;
+
+    dom.judgeText.textContent = ok ? '✅ 回答正确' : '❌ 回答错误';
+    dom.judgeText.style.color = ok ? '#10b981' : '#ef4444';
+    dom.rightAns.textContent = '正确答案：'+CONFIG.questions[game.q].ans;
     dom.judgeModal.classList.remove('hidden');
+}
+
+// ======================
+// 修复：上一题 / 下一题 逻辑（最后一题不直接结束）
+// ======================
+// 下一题：最后一题时不直接结束，而是走判题弹窗流程
+function nextQuestion(){
+    // 先判题，再决定是否进入下一题/结束
+    checkAns();
 }
 
 // 上一题
@@ -286,34 +328,42 @@ function prevQuestion(){
     if(game.q <= 0) return;
     game.q--;
     dom.curr.textContent = game.q +1;
+    shuffleWords();
     renderQ();
-}
-
-// 下一题
-function nextQuestion(){
-    if(game.q < CONFIG.questions.length -1){
-        game.q++;
-        dom.curr.textContent = game.q +1;
-        renderQ();
-    } else {
-        finishGame();
-    }
 }
 
 // 绑定按钮
 dom.prevBtn.onclick = prevQuestion;
-dom.nextBtn.onclick = () => {
-    dom.judgeModal.classList.add('hidden');
-    nextQuestion();
-};
+dom.nextBtn.onclick = nextQuestion;
 
-// 判题弹窗下一题
-dom.nextQ.onclick = () => {
+// 判题弹窗的「下一题」：最后一题时改为「完成答题」
+function goNextQuestion(){
     dom.judgeModal.classList.add('hidden');
-    nextQuestion();
-};
 
-// 动态更新导航按钮
+    // 不是最后一题：正常下一题
+    if(game.q < CONFIG.questions.length -1){
+        game.q++;
+        dom.curr.textContent = game.q +1;
+        shuffleWords();
+        renderQ();
+    }
+    // 是最后一题：结束游戏
+    else {
+        finishGame();
+    }
+}
+dom.nextQ.onclick = goNextQuestion;
+
+// 统一结束游戏逻辑
+function finishGame(){
+    clearInterval(game.timer);
+    saveRecordToCloud();
+    dom.final.textContent = game.score;
+    dom.resultModal.classList.remove('hidden');
+    dom.gamePage.classList.add('hidden');
+}
+
+// 动态更新导航按钮：最后一题时「下一题」改为「完成答题」
 function updateNavBtn(){
     if(game.q === CONFIG.questions.length -1){
         dom.nextBtn.textContent = '完成答题';
@@ -341,17 +391,8 @@ function startTimer(){
     },1000);
 }
 
-// 结束游戏
-function finishGame(){
-    clearInterval(game.timer);
-    saveRecordToCloud();
-    dom.final.textContent = game.score;
-    dom.resultModal.classList.remove('hidden');
-    dom.gamePage.classList.add('hidden');
-}
-
 // ==========================================
-// 云端数据操作
+// 云端数据操作（所有设备实时同步）
 // ==========================================
 let allRecords = [];
 
