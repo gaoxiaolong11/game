@@ -162,6 +162,7 @@ const CONFIG = {
         { img: "1414.jpg", ans: "T8钢等温淬火组织下贝氏体+淬火马氏体" },
         { img: "1515.jpg", ans: "20钢淬火组织板条马氏体" },
         { img: "1616.jpg", ans: "T8钢淬火组织针状马氏体+残余奥氏体" },
+        { img: "2222.jpg", ans: "45钢调质组织回火索氏体" },
         { img: "2525.jpg", ans: "T12钢球化退火组织球状珠光体" },
         { img: "4646.jpg", ans: "灰口铸铁退火组织铁素体+片状石墨" },
         { img: "5151.jpg", ans: "球墨铸铁退火组织铁素体+球状石墨" },
@@ -232,12 +233,12 @@ function startGame(){
 function generateOptions(){
     const correctAns = CONFIG.questions[game.q].ans;
     const allAnswers = CONFIG.questions.map(q => q.ans);
-    
+
     // 筛选出非正确答案
     let wrongOptions = allAnswers.filter(ans => ans !== correctAns);
     // 随机打乱并取3个错误答案
     wrongOptions = wrongOptions.sort(() => Math.random() - 0.5).slice(0, 3);
-    
+
     // 组合4个选项并打乱
     let options = [correctAns, ...wrongOptions];
     return options.sort(() => Math.random() - 0.5);
@@ -247,11 +248,11 @@ function generateOptions(){
 function renderQ(){
     let item = CONFIG.questions[game.q];
     dom.img.src = item.img;
-    
+
     // 生成选项
     const options = generateOptions();
     dom.optionsArea.innerHTML = '';
-    
+
     options.forEach((opt, index) => {
         const btn = document.createElement('button');
         btn.className = 'option-btn w-full bg-blue-100 hover:bg-blue-200 rounded-lg p-3 text-left text-lg font-bold';
@@ -268,13 +269,13 @@ function renderQ(){
 function selectOption(selectedAns){
     const correctAns = CONFIG.questions[game.q].ans;
     const isCorrect = selectedAns === correctAns;
-    
+
     // 计分
     if(isCorrect) {
         game.score += CONFIG.perScore;
         dom.score.textContent = game.score;
     }
-    
+
     // 显示判题弹窗
     dom.judgeText.textContent = isCorrect ? '✅ 回答正确' : '❌ 回答错误';
     dom.judgeText.style.color = isCorrect ? '#10b981' : '#ef4444';
